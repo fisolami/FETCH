@@ -42,6 +42,14 @@ chmod +x bin/yt-dlp
 Without ffmpeg the app still runs, but warns loudly: no HD merging, no MP4
 remux, no AAC-LC audio.
 
+### Environment
+
+| Variable | Effect |
+|---|---|
+| `PORT` | Binds `0.0.0.0` and skips opening a browser |
+| `FETCH_DOWNLOAD_DIR` | Where downloads land; falls back to `~/Downloads`, then temp |
+| `FETCH_COOKIES_FILE` | Path to a `cookies.txt`, the only cookie source a server can use |
+
 ## Use
 
 ```bash
@@ -78,10 +86,18 @@ from the server to your browser via `/api/file`, which refuses any path outside
 the download directory. Files older than an hour are swept on each new job,
 since hosted disks are small and ephemeral.
 
-Two limits worth knowing: YouTube bot-checks cloud IPs aggressively and the
-browser-cookies workaround cannot reach a server, so expect more failures than
-you get locally; and on ephemeral disks a large download can exhaust the temp
-volume.
+A hosted instance hides what it cannot do: the playlist and browser-cookie
+controls disappear, because a server has no browser to read cookies from and
+can only hand back one file at a time. The API rejects both rather than
+trusting the client.
+
+To get past YouTube's bot checks on a cloud IP, export cookies from a browser
+as `cookies.txt` and point `FETCH_COOKIES_FILE` at it. Without that, expect
+more failures hosted than locally — cloud IPs are checked aggressively and
+there is no browser on the server to fall back on.
+
+Ephemeral disks are small: a large download can exhaust the temp volume, and
+Fetch reports that plainly rather than failing obscurely.
 
 ## Layout
 

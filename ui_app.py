@@ -144,11 +144,33 @@ def api_download():
         cookies_from_browser = str(cookies_from_browser).strip().lower() or None
 
     if not IS_LOCAL:
+        # No browser exists on a server, so reading its cookie database cannot
+        # work; FETCH_COOKIES_FILE is the supported route instead.
+        cookies_from_browser = None
+        if playlist:
+            return (
+                jsonify(
+                    {
+                        "ok": False,
+                        "error": "Playlists are local-only: this server can hand back one "
+                        "file at a time. Download the videos individually, or run Fetch "
+                        "on your own machine.",
+                    }
+                ),
+                400,
+            )
+
+    if not IS_LOCAL:
         _purge_stale_downloads()
 
     with _job_lock:
         if _busy:
-            return jsonify({"ok": False, "error": "A download is already running."}), 409
+            message = (
+                "A download is already running."
+                if IS_LOCAL
+                else "This server is busy with another download — try again in a moment."
+            )
+            return jsonify({"ok": False, "error": message}), 409
         _busy = True
 
     events: queue.Queue = queue.Queue()

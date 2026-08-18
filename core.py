@@ -31,6 +31,12 @@ _LOCAL_FFMPEG = ROOT / "bin" / "ffmpeg"
 # Order matters: try VR/TV first (no PO token), then others as fallback.
 _PLAYER_CLIENTS = "android_vr,tv,ios,mweb,web_safari"
 
+# Browsers yt-dlp can read cookies from; anything else is rejected rather than
+# passed through to the command line.
+SUPPORTED_BROWSERS = frozenset(
+    {"chrome", "chromium", "brave", "edge", "firefox", "safari", "opera", "vivaldi", "whale"}
+)
+
 
 @lru_cache(maxsize=1)
 def resolve_ytdlp() -> str:
@@ -554,13 +560,22 @@ def download_one(
         cmd += ["--ffmpeg-location", ffmpeg]
     if js:
         cmd += ["--js-runtimes", js]
-    if cookies_from_browser:
+    cookies_file = os.environ.get("FETCH_COOKIES_FILE")
+    if cookies_file and not Path(cookies_file).is_file():
+        cookies_file = None
+    if cookies_from_browser and cookies_from_browser not in SUPPORTED_BROWSERS:
+        cookies_from_browser = None
+    if cookies_from_browser or cookies_file:
         # android_vr ignores cookies — drop it when authenticated
         cmd = [
             c if not c.startswith("youtube:player_client=") else "youtube:player_client=tv,web,web_safari,mweb"
             for c in cmd
         ]
-        cmd += ["--cookies-from-browser", cookies_from_browser]
+        # A cookies file is the only option on a host, where no browser exists.
+        if cookies_file:
+            cmd += ["--cookies", cookies_file]
+        else:
+            cmd += ["--cookies-from-browser", cookies_from_browser]
     if audio_only and ffmpeg_ok:
         cmd += ["-x", "--audio-format", "m4a", "--audio-quality", "0"]
 
@@ -647,6 +662,18 @@ def download_one(
                 )
             elif "429" in low or "too many requests" in low:
                 hint = " YouTube rate-limited you — wait 1–2 minutes and try again."
+            elif "no space left" in low or "errno 28" in low:
+                hint = (
+                    " The server ran out of disk space. Hosted instances have a small "
+                    "temporary disk — try a lower quality, a shorter video, or run "
+                    "Fetch locally."
+                )
+            elif "could not find" in low and "cookies database" in low:
+                hint = (
+                    " There is no browser on this server to read cookies from. Turn "
+                    "“Use browser cookies” off, or set FETCH_COOKIES_FILE to an "
+                    "exported cookies.txt."
+                )
             return {
                 "ok": False,
                 "title": title,

@@ -51,6 +51,10 @@
               />
               <button type="button" class="ghost" id="paste" title="Paste from clipboard">Paste</button>
             </div>
+            <p class="note note-warn" id="hosted-note" hidden>
+              Hosted instance — the file downloads to this device when it is ready.
+              Playlists and browser cookies only work when you run Fetch locally.
+            </p>
           </div>
         </div>
 
@@ -82,7 +86,7 @@
           </div>
         </div>
 
-        <div class="row">
+        <div class="row" id="scope-row">
           <span class="row-label">Scope</span>
           <div class="row-body">
             <label class="check">
@@ -96,7 +100,7 @@
           </div>
         </div>
 
-        <div class="row">
+        <div class="row" id="access-row">
           <span class="row-label">Access</span>
           <div class="row-body">
             <label class="check">

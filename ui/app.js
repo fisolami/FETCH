@@ -283,6 +283,18 @@
 
       if (hint) hint.hidden = !!data.ffmpeg;
       isLocal = data.local !== false;
+      if (!isLocal) {
+        // A server has no browser to read cookies from and can only hand back
+        // one file, so remove both controls rather than let them fail.
+        cookiesToggle.checked = false;
+        playlist.checked = false;
+        for (const id of ["#scope-row", "#access-row"]) {
+          const row = $(id);
+          if (row) row.hidden = true;
+        }
+        const hosted = $("#hosted-note");
+        if (hosted) hosted.hidden = false;
+      }
       revealBtn.textContent = isLocal ? "Show" : "Save";
       revealBtn.title = isLocal
         ? "Reveal in Finder"
