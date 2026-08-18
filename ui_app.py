@@ -7,18 +7,51 @@ import json
 import os
 import queue
 import subprocess
+import sys
+import tempfile
 import threading
 import time
 import webbrowser
 from pathlib import Path
 
-from flask import Flask, Response, jsonify, request, send_from_directory
+from flask import Flask, Response, abort, jsonify, request, send_file, send_from_directory
 
 from core import download_one, has_ffmpeg, system_status
 
 ROOT = Path(__file__).resolve().parent
 UI_DIR = ROOT / "ui"
-DOWNLOADS = Path.home() / "Downloads"
+
+
+def _writable(path: Path) -> bool:
+    try:
+        path.mkdir(parents=True, exist_ok=True)
+    except OSError:
+        return False
+    return os.access(path, os.W_OK)
+
+
+def resolve_download_dir() -> Path:
+    """Where downloads land.
+
+    Locally that is ~/Downloads. On a host it usually cannot be: serverless
+    sandboxes (AWS Lambda's /home/sbx_user*, for one) mount everything except
+    the temp directory read-only, so writing there fails with Errno 30.
+    """
+    override = os.environ.get("FETCH_DOWNLOAD_DIR")
+    if override:
+        candidate = Path(override).expanduser()
+        if _writable(candidate):
+            return candidate
+    home = Path.home() / "Downloads"
+    if _writable(home):
+        return home
+    return Path(tempfile.gettempdir()) / "fetch-downloads"
+
+
+DOWNLOADS = resolve_download_dir()
+# Only a local macOS run can reveal a file in Finder; anywhere else the browser
+# has to be handed the bytes instead.
+IS_LOCAL = sys.platform == "darwin" and DOWNLOADS == Path.home() / "Downloads"
 
 app = Flask(__name__, static_folder=None)
 
@@ -40,12 +73,34 @@ def assets(filename: str):
 def api_status():
     st = system_status()
     st["downloads"] = str(DOWNLOADS)
+    st["local"] = IS_LOCAL
     return jsonify(st)
+
+
+def _inside_downloads(raw: str) -> Path:
+    """Resolve a client-supplied path, refusing anything outside DOWNLOADS."""
+    try:
+        target = Path(raw).expanduser().resolve()
+        root = DOWNLOADS.resolve()
+    except OSError:
+        abort(400)
+    if not target.is_relative_to(root) or not target.is_file():
+        abort(404)
+    return target
+
+
+@app.get("/api/file")
+def api_file():
+    """Hand a finished download to the browser (the hosted equivalent of Reveal)."""
+    target = _inside_downloads(request.args.get("path", ""))
+    return send_file(target, as_attachment=True, download_name=target.name)
 
 
 @app.post("/api/reveal")
 def api_reveal():
     """Open the downloads folder (or a specific file) in Finder on macOS."""
+    if not IS_LOCAL:
+        return jsonify({"ok": False, "error": "Reveal only works on the local macOS app."}), 400
     data = request.get_json(force=True, silent=True) or {}
     target = Path(data.get("path") or DOWNLOADS).expanduser()
     if not target.exists():
@@ -58,6 +113,17 @@ def api_reveal():
         return jsonify({"ok": True})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
+
+
+def _purge_stale_downloads(max_age_seconds: int = 3600) -> None:
+    """Hosted disks are small and ephemeral; drop anything an hour old."""
+    cutoff = time.time() - max_age_seconds
+    try:
+        for path in DOWNLOADS.rglob("*"):
+            if path.is_file() and path.stat().st_mtime < cutoff:
+                path.unlink(missing_ok=True)
+    except OSError:
+        pass
 
 
 @app.post("/api/download")
@@ -76,6 +142,9 @@ def api_download():
     cookies_from_browser = data.get("cookies_from_browser") or None
     if cookies_from_browser:
         cookies_from_browser = str(cookies_from_browser).strip().lower() or None
+
+    if not IS_LOCAL:
+        _purge_stale_downloads()
 
     with _job_lock:
         if _busy:
@@ -135,7 +204,7 @@ def api_download():
 
 
 def main() -> None:
-    DOWNLOADS.mkdir(parents=True, exist_ok=True)
+    _writable(DOWNLOADS)
     if not has_ffmpeg():
         print(
             "WARNING: ffmpeg not found, so downloads cannot be made Premiere-ready\n"

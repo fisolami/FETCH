@@ -26,6 +26,7 @@
   let mode = "video";
   let resolution = "1080";
   let cookieBrowser = "chrome";
+  let isLocal = true;
   let lastPath = "";
   let busy = false;
 
@@ -88,6 +89,11 @@
   });
 
   revealBtn.addEventListener("click", async () => {
+    if (!isLocal) {
+      // Hosted: the file lives on the server, so hand it to the browser.
+      if (lastPath) window.location.href = `/api/file?path=${encodeURIComponent(lastPath)}`;
+      return;
+    }
     try {
       await fetch("/api/reveal", {
         method: "POST",
@@ -276,9 +282,16 @@
       ver.textContent = `yt-dlp ${data.yt_dlp || "?"}`;
 
       if (hint) hint.hidden = !!data.ffmpeg;
+      isLocal = data.local !== false;
+      revealBtn.textContent = isLocal ? "Show" : "Save";
+      revealBtn.title = isLocal
+        ? "Reveal in Finder"
+        : "Download the file to this device";
       if (data.downloads) {
-        const pretty = data.downloads.replace(/^\/Users\/[^/]+/, "~");
-        if (statusPath) statusPath.textContent = pretty;
+        const pretty = isLocal
+          ? data.downloads.replace(/^\/Users\/[^/]+/, "~")
+          : "this device";
+        if (statusPath) statusPath.textContent = isLocal ? pretty : "Save when ready";
         const actionHint = $("#action-hint");
         if (actionHint) actionHint.textContent = `Saves to ${pretty}`;
       }

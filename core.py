@@ -12,6 +12,7 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 import time
 import warnings
 from functools import lru_cache
@@ -39,7 +40,9 @@ def resolve_ytdlp() -> str:
     which = shutil.which("yt-dlp")
     if which:
         return which
-    return "python3"
+    # Last resort: the pip-installed package under the interpreter we are
+    # already running. A bare "python3" is not guaranteed to be on a host PATH.
+    return sys.executable or "python3"
 
 
 @lru_cache(maxsize=1)
@@ -96,7 +99,7 @@ def ytdlp_version() -> str:
 
 def _ytdlp_base_cmd() -> list[str]:
     exe = resolve_ytdlp()
-    if exe.endswith("python3") or exe.endswith("python"):
+    if exe == sys.executable or Path(exe).name.startswith("python"):
         return [exe, "-m", "yt_dlp"]
     return [exe]
 

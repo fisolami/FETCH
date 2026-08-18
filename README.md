@@ -68,12 +68,20 @@ after yt-dlp fails, so it goes dormant once upstream ships a fix.
 `Procfile` runs it under gunicorn. `PORT` in the environment switches the
 server to `0.0.0.0` and skips opening a browser.
 
-Be aware of what a hosted instance is and isn't: downloads are written to the
-**server's** disk and nothing serves them back to your browser, so you get the
-interface without a usable download. `/api/reveal` is macOS-only and does
-nothing on Linux, and YouTube bot-checks cloud IPs aggressively while the
-browser-cookies workaround is unavailable server-side. Fetch is a local tool;
-run it on the machine you want the files on.
+The download directory is resolved at startup: `FETCH_DOWNLOAD_DIR` if set,
+else `~/Downloads` if writable, else the system temp directory. Serverless
+sandboxes (AWS Lambda's `/home/sbx_user*`, for one) mount everything but temp
+read-only, which is what the fallback is for.
+
+Hosted, the result row offers **Save** instead of **Show**: the file is streamed
+from the server to your browser via `/api/file`, which refuses any path outside
+the download directory. Files older than an hour are swept on each new job,
+since hosted disks are small and ephemeral.
+
+Two limits worth knowing: YouTube bot-checks cloud IPs aggressively and the
+browser-cookies workaround cannot reach a server, so expect more failures than
+you get locally; and on ephemeral disks a large download can exhaust the temp
+volume.
 
 ## Layout
 
