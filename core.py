@@ -32,6 +32,40 @@ _LOCAL_FFMPEG = ROOT / "bin" / "ffmpeg"
 # Order matters: try VR/TV first (no PO token), then others as fallback.
 _PLAYER_CLIENTS = "android_vr,tv,ios,mweb,web_safari"
 
+# Tried in order when YouTube refuses the request as a bot. The first entry is
+# what works locally and yields the best formats; the rest are for when that
+# client is blocked outright, which is what happens from a datacenter IP.
+# FETCH_PLAYER_CLIENTS overrides the whole chain (comma-separated sets, ";"
+# between attempts) so a host can be retuned without a code change.
+_CLIENT_CHAIN = (
+    _PLAYER_CLIENTS,
+    "default",
+    "tv,web_safari,mweb,web",
+)
+
+
+def _client_chain() -> tuple[str, ...]:
+    override = os.environ.get("FETCH_PLAYER_CLIENTS", "").strip()
+    if override:
+        return tuple(part.strip() for part in override.split(";") if part.strip())
+    return _CLIENT_CHAIN
+
+
+def _is_bot_check(message: str) -> bool:
+    low = message.lower()
+    return (
+        "not a bot" in low
+        or "sign in to confirm" in low
+        or "page needs to be reloaded" in low
+    )
+
+
+def _extra_ytdlp_args() -> list[str]:
+    """Operator escape hatch: extra yt-dlp flags, e.g. a PO token provider."""
+    import shlex
+
+    return shlex.split(os.environ.get("FETCH_YTDLP_ARGS", ""))
+
 # Browsers yt-dlp can read cookies from; anything else is rejected rather than
 # passed through to the command line.
 SUPPORTED_BROWSERS = frozenset(
@@ -531,6 +565,7 @@ def download_one(
     cookies_from_browser: Optional[str] = None,
     on_progress: Optional[ProgressCb] = None,
     quiet: bool = False,
+    _attempt: int = 0,
 ) -> dict:
     """
     Download a single URL via the bundled/current yt-dlp.
@@ -567,7 +602,7 @@ def download_one(
         "--newline",
         "--progress",
         "--extractor-args",
-        f"youtube:player_client={_PLAYER_CLIENTS}",
+        f"youtube:player_client={_client_chain()[_attempt]}",
         "--print",
         "before_dl:META:%(title)s||%(width)s||%(height)s",
         "--print",
@@ -579,6 +614,8 @@ def download_one(
     if quiet:
         # Still show progress lines; suppress non-progress noise
         cmd += ["--no-warnings"]
+
+    cmd += _extra_ytdlp_args()
 
     if ffmpeg_ok and not audio_only:
         # --merge-output-format only covers separate video+audio streams. HLS
@@ -680,6 +717,24 @@ def download_one(
                 (l for l in reversed(stderr_lines) if "ERROR:" in l),
                 "\n".join(stderr_lines[-8:]) or f"yt-dlp exited with code {code}",
             )
+
+            # A refusal is about which client asked, not about the video. Try
+            # the next client set before giving up; local succeeds on the first
+            # attempt and never reaches this.
+            if _is_bot_check(err) and _attempt + 1 < len(_client_chain()):
+                if on_progress:
+                    on_progress({"status": "retrying", "attempt": _attempt + 2})
+                return download_one(
+                    url,
+                    output_dir=output_dir,
+                    resolution=resolution,
+                    audio_only=audio_only,
+                    playlist=playlist,
+                    cookies_from_browser=cookies_from_browser,
+                    on_progress=on_progress,
+                    quiet=quiet,
+                    _attempt=_attempt + 1,
+                )
             hint = ""
             low = err.lower()
             if "page needs to be reloaded" in low or "sign in" in low or "not a bot" in low:

@@ -233,6 +233,10 @@
           bits.push(`${formatBytes(ev.downloaded)} / ${formatBytes(ev.total)}`);
         }
         progressSub.textContent = bits.join(" · ");
+      } else if (ev.status === "retrying") {
+        setIndeterminate(true);
+        progressStatus.textContent = "Retrying";
+        progressSub.textContent = `YouTube refused that request — attempt ${ev.attempt}`;
       } else if (ev.status === "processing") {
         setIndeterminate(true);
         progressStatus.textContent = "Preparing";

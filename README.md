@@ -50,6 +50,8 @@ remux, no AAC-LC audio.
 | `FETCH_DOWNLOAD_DIR` | Where downloads land; falls back to `~/Downloads`, then temp |
 | `FETCH_COOKIES_FILE` | Path to a `cookies.txt`, the only cookie source a server can use |
 | `FETCH_COOKIES_TXT` | The cookie file's contents, for hosts with a read-only disk |
+| `FETCH_PLAYER_CLIENTS` | Override the YouTube client fallback chain (`;` between attempts) |
+| `FETCH_YTDLP_ARGS` | Extra yt-dlp flags, e.g. pointing at a PO token provider |
 
 ## Use
 
@@ -102,6 +104,13 @@ file at first use).
 Use a throwaway YouTube account for this. Those cookies are a live session
 for whatever account exported them, they sit in your host's environment, and
 YouTube may flag an account whose session downloads from a datacenter IP.
+
+Before reaching for cookies, note that a refusal names a *client*, not the
+video: Fetch retries across a chain of YouTube player clients
+(`android_vr,…` → yt-dlp defaults → `tv,web_safari,…`) and only reports
+failure once every one is refused. `FETCH_PLAYER_CLIENTS` retunes that chain
+without a redeploy. The robust server-side answer is a PO token provider —
+run one as a sidecar and point Fetch at it with `FETCH_YTDLP_ARGS`.
 
 Ephemeral disks are small: a large download can exhaust the temp volume, and
 Fetch reports that plainly rather than failing obscurely.
