@@ -13,6 +13,7 @@ import re
 import shutil
 import subprocess
 import sys
+import tempfile
 import time
 import warnings
 from functools import lru_cache
@@ -108,6 +109,35 @@ def _ytdlp_base_cmd() -> list[str]:
     if exe == sys.executable or Path(exe).name.startswith("python"):
         return [exe, "-m", "yt_dlp"]
     return [exe]
+
+
+@lru_cache(maxsize=1)
+def resolve_cookies_file() -> Optional[str]:
+    """A cookies.txt for hosted instances, where no browser exists.
+
+    ``FETCH_COOKIES_FILE`` points at one; ``FETCH_COOKIES_TXT`` carries the
+    contents directly, which is the only practical route on a host with a
+    read-only filesystem.
+    """
+    path = os.environ.get("FETCH_COOKIES_FILE")
+    if path and Path(path).is_file():
+        return path
+
+    blob = os.environ.get("FETCH_COOKIES_TXT")
+    if blob and blob.strip():
+        try:
+            target = Path(tempfile.gettempdir()) / "fetch-cookies.txt"
+            target.write_text(blob if blob.endswith("\n") else blob + "\n", encoding="utf-8")
+            target.chmod(0o600)
+            return str(target)
+        except OSError:
+            return None
+    return None
+
+
+def is_hosted() -> bool:
+    """Set by ui_app when the app is not running locally on macOS."""
+    return os.environ.get("FETCH_HOSTED") == "1"
 
 
 def build_format(resolution: Optional[int], audio_only: bool, ffmpeg_ok: bool) -> str:
@@ -560,9 +590,7 @@ def download_one(
         cmd += ["--ffmpeg-location", ffmpeg]
     if js:
         cmd += ["--js-runtimes", js]
-    cookies_file = os.environ.get("FETCH_COOKIES_FILE")
-    if cookies_file and not Path(cookies_file).is_file():
-        cookies_file = None
+    cookies_file = resolve_cookies_file()
     if cookies_from_browser and cookies_from_browser not in SUPPORTED_BROWSERS:
         cookies_from_browser = None
     if cookies_from_browser or cookies_file:
@@ -655,11 +683,24 @@ def download_one(
             hint = ""
             low = err.lower()
             if "page needs to be reloaded" in low or "sign in" in low or "not a bot" in low:
-                hint = (
-                    " YouTube is blocking this request. Turn on “Use browser cookies” "
-                    "(Chrome recommended), make sure you’re logged into YouTube in that "
-                    "browser, wait a minute, then retry."
-                )
+                if is_hosted():
+                    hint = (
+                        " YouTube bot-checks this server's IP, and there is no browser "
+                        "here to borrow cookies from. Set FETCH_COOKIES_TXT (or "
+                        "FETCH_COOKIES_FILE) to an exported cookies.txt and redeploy, "
+                        "or run Fetch on your own machine, where this video works."
+                    )
+                elif resolve_cookies_file():
+                    hint = (
+                        " YouTube rejected the cookies file — it has probably expired. "
+                        "Export a fresh cookies.txt and try again."
+                    )
+                else:
+                    hint = (
+                        " YouTube is blocking this request. Turn on “Use browser cookies” "
+                        "(Chrome recommended), make sure you’re logged into YouTube in that "
+                        "browser, wait a minute, then retry."
+                    )
             elif "429" in low or "too many requests" in low:
                 hint = " YouTube rate-limited you — wait 1–2 minutes and try again."
             elif "no space left" in low or "errno 28" in low:

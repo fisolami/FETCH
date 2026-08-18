@@ -52,6 +52,8 @@ DOWNLOADS = resolve_download_dir()
 # Only a local macOS run can reveal a file in Finder; anywhere else the browser
 # has to be handed the bytes instead.
 IS_LOCAL = sys.platform == "darwin" and DOWNLOADS == Path.home() / "Downloads"
+if not IS_LOCAL:
+    os.environ["FETCH_HOSTED"] = "1"
 
 app = Flask(__name__, static_folder=None)
 
