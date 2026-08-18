@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="color-scheme" content="dark" />
+  <title>Fetch by Fisola</title>
+  <link rel="stylesheet" href="/assets/styles.css" />
+</head>
+<body>
+  <div class="app">
+
+    <header class="appbar">
+      <span class="brandmark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none">
+          <path d="M12 3.5v11.5M12 15l-4-4M12 15l4-4" stroke="currentColor" stroke-width="1.25"
+                stroke-linecap="square" />
+          <path d="M4 17.5v3h16v-3" stroke="currentColor" stroke-width="1.25" stroke-linecap="square" />
+        </svg>
+      </span>
+      <h1 class="wordmark">Fetch</h1>
+      <span class="byline">by Fisola</span>
+
+      <div class="appbar-spacer"></div>
+
+      <span class="tag" id="pill-ffmpeg">ffmpeg</span>
+      <span class="tag" id="pill-js">js</span>
+      <span class="tag" id="pill-ytdlp">yt-dlp</span>
+    </header>
+
+    <main class="canvas">
+      <section class="panel" id="panel">
+
+        <div class="panel-head">
+          <span class="panel-title">New download</span>
+          <span class="panel-meta">YouTube</span>
+        </div>
+
+        <div class="row">
+          <span class="row-label" id="label-link">Link</span>
+          <div class="row-body">
+            <div class="input-group">
+              <input
+                id="url"
+                type="url"
+                inputmode="url"
+                autocomplete="off"
+                spellcheck="false"
+                aria-labelledby="label-link"
+                placeholder="Paste a YouTube URL"
+              />
+              <button type="button" class="ghost" id="paste" title="Paste from clipboard">Paste</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="row">
+          <span class="row-label">Format</span>
+          <div class="row-body">
+            <div class="pill-set" role="tablist" aria-label="Format">
+              <button type="button" class="pill active" data-mode="video" role="tab" aria-selected="true">Video</button>
+              <button type="button" class="pill" data-mode="audio" role="tab" aria-selected="false">Audio</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="row" id="quality-block">
+          <span class="row-label">Quality</span>
+          <div class="row-body">
+            <div class="pill-set" role="group" aria-label="Quality">
+              <button type="button" class="pill active" data-res="1080">1080p</button>
+              <button type="button" class="pill" data-res="720">720p</button>
+              <button type="button" class="pill" data-res="480">480p</button>
+              <button type="button" class="pill" data-res="best">Best</button>
+            </div>
+            <p class="note note-warn" id="hd-hint" hidden>
+              HD needs ffmpeg — install it or you will get ~360p.
+            </p>
+            <p class="note">1080p and below arrive as H.264 in MP4, which Premiere Pro
+              imports directly. Best goes above 1080p as VP9 or AV1 — great for viewing,
+              not editable in Premiere.</p>
+          </div>
+        </div>
+
+        <div class="row">
+          <span class="row-label">Scope</span>
+          <div class="row-body">
+            <label class="check">
+              <input type="checkbox" id="playlist" />
+              <span class="box" aria-hidden="true"></span>
+              <span class="check-copy">
+                <span class="check-title">Entire playlist</span>
+                <span class="note">Off downloads only the linked video</span>
+              </span>
+            </label>
+          </div>
+        </div>
+
+        <div class="row">
+          <span class="row-label">Access</span>
+          <div class="row-body">
+            <label class="check">
+              <input type="checkbox" id="cookies" checked />
+              <span class="box" aria-hidden="true"></span>
+              <span class="check-copy">
+                <span class="check-title">Use browser cookies</span>
+                <span class="note">Clears “page needs to be reloaded” and bot checks</span>
+              </span>
+            </label>
+
+            <div class="subrow" id="cookie-browser-block">
+              <span class="subrow-label">Browser</span>
+              <div class="pill-set" role="group" aria-label="Browser for cookies">
+                <button type="button" class="pill active" data-browser="chrome">Chrome</button>
+                <button type="button" class="pill" data-browser="safari">Safari</button>
+                <button type="button" class="pill" data-browser="firefox">Firefox</button>
+                <button type="button" class="pill" data-browser="brave">Brave</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="action-bar">
+          <span class="action-hint" id="action-hint">Saves to ~/Downloads</span>
+          <button type="button" class="ghost ghost-emphasis" id="download">
+            <span class="primary-label">Download</span>
+            <span class="glyph" aria-hidden="true">↓</span>
+          </button>
+        </div>
+
+      </section>
+
+      <section class="rail" id="progress-wrap" hidden>
+        <div class="rail-line">
+          <span class="rail-glyph" aria-hidden="true">→</span>
+          <span class="rail-status" id="progress-status">Preparing</span>
+          <span class="rail-spacer"></span>
+          <span class="rail-sub" id="progress-sub"></span>
+          <span class="rail-pct" id="progress-pct">0%</span>
+        </div>
+        <div class="track indeterminate" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+          <div class="fill" id="progress-fill"></div>
+        </div>
+      </section>
+
+      <section class="rail" id="result" hidden>
+        <div class="rail-line">
+          <span class="rail-glyph gold" aria-hidden="true">✓</span>
+          <span class="rail-status" id="result-title">Saved</span>
+          <span class="rail-spacer"></span>
+          <span class="rail-sub" id="result-path"></span>
+          <button type="button" class="ghost" id="reveal">Show</button>
+        </div>
+      </section>
+
+      <section class="rail" id="error" hidden>
+        <div class="rail-line">
+          <span class="rail-glyph gold" aria-hidden="true">!</span>
+          <span class="rail-status">Not downloaded</span>
+        </div>
+        <p class="rail-copy" id="error-copy"></p>
+      </section>
+    </main>
+
+    <footer class="statusrail">
+      <span class="status-item" id="status-path">~/Downloads</span>
+      <span class="status-spacer"></span>
+      <span class="status-item">Fetch by Fisola</span>
+    </footer>
+
+  </div>
+
+  <script src="/assets/app.js"></script>
+</body>
+</html>

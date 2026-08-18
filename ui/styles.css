@@ -1,0 +1,511 @@
+/* Fetch by Fisola — obsidian monolith in candlelight.
+   Dark only. Hairlines, never shadows. Gold is a stroke, never a surface. */
+
+:root {
+  --color-black: #000000;
+  --color-cream: #fff7dd;
+  --color-gold:  #c8ad86;
+
+  --text-primary:    rgb(255 247 221 / 1);
+  --text-secondary:  rgb(255 247 221 / 0.62);
+  --text-faint:      rgb(255 247 221 / 0.34);
+  --hairline:        rgb(255 247 221 / 0.20);
+  --hairline-bright: rgb(255 247 221 / 0.34);
+  --hairline-dim:    rgb(255 247 221 / 0.10);
+  --gold-line:       rgb(200 173 134 / 0.65);
+  --gold-line-soft:  rgb(200 173 134 / 0.45);
+  --track:           rgb(255 247 221 / 0.12);
+
+  --radius: 4px;
+
+  font-family: "Switzer", "Inter", "General Sans", "Satoshi",
+    -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  min-height: 100%;
+  background: var(--color-black);
+}
+
+body {
+  color: var(--text-primary);
+  font-size: 14px;
+  line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
+}
+
+button, input { font: inherit; color: inherit; }
+
+button:focus-visible,
+input:focus-visible,
+.check input:focus-visible + .box {
+  outline: none;
+  border-color: var(--gold-line);
+}
+
+/* ── Type roles ─────────────────────────────────────────────────────────── */
+
+.row-label,
+.subrow-label,
+.panel-title,
+.panel-meta,
+.tag,
+.pill,
+.ghost,
+.rail-status,
+.rail-pct,
+.status-item,
+.check-title {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.18px;
+  text-transform: uppercase;
+}
+
+.rail-pct,
+.rail-sub,
+.status-item {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Shell ──────────────────────────────────────────────────────────────── */
+
+.app {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+.appbar {
+  height: 52px;
+  flex: 0 0 52px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.brandmark {
+  width: 20px;
+  height: 20px;
+  color: var(--color-gold);
+  display: block;
+}
+
+.brandmark svg { width: 100%; height: 100%; display: block; }
+
+.wordmark {
+  margin: 0 0 0 2px;
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: -0.5px;
+  text-transform: uppercase;
+  color: var(--text-primary);
+}
+
+.byline {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.18px;
+  text-transform: uppercase;
+  color: var(--color-gold);
+}
+
+.appbar-spacer { flex: 1; }
+
+/* Tag pill — 1px border, transparent fill */
+.tag {
+  padding: 4px 10px;
+  border: 1px solid var(--hairline);
+  border-radius: 100px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.tag.ok {
+  border-color: var(--gold-line);
+  color: var(--color-gold);
+}
+
+.tag.warn {
+  border-color: var(--hairline-bright);
+  color: var(--text-primary);
+}
+
+/* ── Canvas ─────────────────────────────────────────────────────────────── */
+
+.canvas {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 40px 20px;
+}
+
+.panel {
+  width: min(560px, 100%);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius);
+  background: var(--color-black);
+}
+
+.panel-head {
+  height: 40px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.panel-title { color: var(--text-primary); }
+
+.panel-meta {
+  margin-left: auto;
+  color: var(--text-faint);
+}
+
+/* ── Rows ───────────────────────────────────────────────────────────────── */
+
+.row {
+  display: flex;
+  gap: 16px;
+  padding: 16px;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.row-label {
+  flex: 0 0 72px;
+  padding-top: 8px;
+  color: var(--text-faint);
+}
+
+.row-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.row.dimmed {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+.note {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-faint);
+}
+
+.note-warn { color: var(--color-gold); }
+
+/* ── Input ──────────────────────────────────────────────────────────────── */
+
+.input-group { display: flex; gap: 8px; }
+
+#url {
+  flex: 1;
+  min-width: 0;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius);
+  background: var(--color-black);
+  color: var(--text-primary);
+  font-size: 14px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+#url::placeholder { color: var(--text-faint); }
+
+#url:hover { border-color: var(--hairline-bright); }
+#url:focus { border-color: var(--gold-line); outline: none; }
+
+/* ── Ghost button — the primary control ─────────────────────────────────── */
+
+.ghost {
+  height: 32px;
+  padding: 0 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: color 120ms linear, border-color 120ms linear;
+}
+
+.ghost:hover {
+  border-color: var(--gold-line);
+  color: var(--color-gold);
+}
+
+.ghost-emphasis {
+  border-color: var(--gold-line-soft);
+  color: var(--color-gold);
+}
+
+.ghost:disabled {
+  border-color: var(--hairline-dim);
+  color: var(--text-faint);
+  cursor: not-allowed;
+}
+
+.ghost .glyph { font-size: 11px; line-height: 1; }
+
+/* ── Pill button ────────────────────────────────────────────────────────── */
+
+.pill-set {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.pill {
+  padding: 4px 10px;
+  border: 1px solid var(--hairline);
+  border-radius: 100px;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: color 120ms linear, border-color 120ms linear;
+}
+
+.pill:hover {
+  border-color: var(--gold-line-soft);
+  color: var(--color-gold);
+}
+
+.pill.active {
+  border-color: var(--gold-line);
+  color: var(--color-gold);
+}
+
+/* ── Checkbox — state carried by glyph color, not fill ──────────────────── */
+
+.check {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.check input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.check .box {
+  position: relative;
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  margin-top: 1px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius);
+  transition: border-color 120ms linear;
+}
+
+.check:hover .box { border-color: var(--hairline-bright); }
+
+.check .box::after {
+  content: "✓";
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 10px;
+  line-height: 1;
+  color: var(--color-gold);
+  opacity: 0;
+}
+
+.check input:checked + .box {
+  border-color: var(--gold-line);
+}
+
+.check input:checked + .box::after { opacity: 1; }
+
+.check-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.check-title { color: var(--text-primary); }
+
+.subrow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--hairline-dim);
+}
+
+.subrow-label { color: var(--text-faint); }
+
+.subrow.dimmed {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+/* ── Action bar ─────────────────────────────────────────────────────────── */
+
+.action-bar {
+  height: 52px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0 16px;
+}
+
+.action-hint {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--text-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Status rails: progress, result, error ──────────────────────────────── */
+
+.rail {
+  width: min(560px, 100%);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.rail-line {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 16px;
+}
+
+.rail-glyph {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.rail-glyph.gold { color: var(--color-gold); }
+
+.rail-status {
+  flex: 0 1 auto;
+  min-width: 0;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rail-spacer { flex: 1 0 16px; }
+
+.rail-sub {
+  flex: 0 1 auto;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--text-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rail-pct { color: var(--color-gold); }
+
+.rail-sub.warn { color: var(--color-gold); }
+
+.rail-copy {
+  margin: 0;
+  padding: 0 16px 14px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+/* Progress — 2px bar, cream track, gold fill */
+.track {
+  position: relative;
+  height: 2px;
+  overflow: hidden;
+  background: var(--track);
+}
+
+.fill {
+  height: 100%;
+  width: 0%;
+  background: var(--color-gold);
+  transition: width 200ms linear;
+}
+
+.track.indeterminate .fill {
+  width: 25%;
+  animation: shuttle 1.1s ease-in-out infinite;
+  transition: none;
+}
+
+@keyframes shuttle {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(400%); }
+}
+
+/* ── Status rail (footer) ───────────────────────────────────────────────── */
+
+.statusrail {
+  height: 44px;
+  flex: 0 0 44px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 16px;
+  border-top: 1px solid var(--hairline);
+}
+
+.status-item {
+  color: var(--text-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.status-spacer { flex: 1; }
+
+/* ── Responsive ─────────────────────────────────────────────────────────── */
+
+@media (max-width: 560px) {
+  .row { flex-direction: column; gap: 10px; }
+  .row-label { flex: none; padding-top: 0; }
+  .subrow { flex-wrap: wrap; }
+  .appbar { gap: 6px; padding: 0 12px; }
+  .appbar #pill-ytdlp { display: none; }
+  .canvas { padding: 20px 12px; }
+  .rail-sub { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

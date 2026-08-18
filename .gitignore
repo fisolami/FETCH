@@ -1,0 +1,18 @@
+downloads/
+*.mp4
+*.mkv
+*.webm
+*.m4a
+*.mp3
+*.part
+*.ytdl
+*.temp
+__pycache__/
+*.pyc
+.venv/
+venv/
+.DS_Store
+
+# Vendored third-party binaries (ffmpeg ~47MB, yt-dlp ~36MB).
+# Not redistributed here; see README for how to restore them.
+bin/
