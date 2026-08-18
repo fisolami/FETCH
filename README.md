@@ -62,6 +62,19 @@ yt-dlp's TikTok extractor is currently broken upstream. Fetch falls back to
 reading the video data from the page directly, preferring H.264. It only runs
 after yt-dlp fails, so it goes dormant once upstream ships a fix.
 
+## Hosting
+
+`wsgi.py` exposes the app for platforms that auto-detect Flask, and the
+`Procfile` runs it under gunicorn. `PORT` in the environment switches the
+server to `0.0.0.0` and skips opening a browser.
+
+Be aware of what a hosted instance is and isn't: downloads are written to the
+**server's** disk and nothing serves them back to your browser, so you get the
+interface without a usable download. `/api/reveal` is macOS-only and does
+nothing on Linux, and YouTube bot-checks cloud IPs aggressively while the
+browser-cookies workaround is unavailable server-side. Fetch is a local tool;
+run it on the machine you want the files on.
+
 ## Layout
 
 | File | Role |

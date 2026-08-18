@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import os
 import queue
 import subprocess
 import threading
@@ -141,11 +142,14 @@ def main() -> None:
             "         (no HD merging, no MP4 remux, no AAC-LC audio).\n"
             "         Restore bin/ffmpeg or run: brew install ffmpeg\n"
         )
-    port = 8765
-    url = f"http://127.0.0.1:{port}"
-    print(f"Fetch by Fisola → {url}")
-    threading.Timer(0.6, lambda: webbrowser.open(url)).start()
-    app.run(host="127.0.0.1", port=port, debug=False, threaded=True)
+    # A host sets $PORT; locally we keep loopback and open a browser tab.
+    hosted = "PORT" in os.environ
+    port = int(os.environ.get("PORT", 8765))
+    host = os.environ.get("HOST", "0.0.0.0" if hosted else "127.0.0.1")
+    print(f"Fetch by Fisola → http://{host}:{port}")
+    if not hosted:
+        threading.Timer(0.6, lambda: webbrowser.open(f"http://127.0.0.1:{port}")).start()
+    app.run(host=host, port=port, debug=False, threaded=True)
 
 
 if __name__ == "__main__":
