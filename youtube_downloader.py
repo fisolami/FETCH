@@ -10,7 +10,14 @@ import argparse
 import sys
 from pathlib import Path
 
-from core import detect_js_runtime, download_one, has_ffmpeg, repair_folder, system_status
+from core import (
+    detect_js_runtime,
+    download_one,
+    export_cookies,
+    has_ffmpeg,
+    repair_folder,
+    system_status,
+)
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -51,6 +58,15 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Re-check already-downloaded files and make them Premiere-ready "
         "(defaults to the output directory; only touches files this app named)",
     )
+    p.add_argument(
+        "--export-cookies",
+        metavar="BROWSER",
+        help="Write cookies.txt from a local browser for a hosted instance "
+        "(e.g. chrome, firefox, or 'chrome:Profile 2' for a specific profile)",
+    )
+    p.add_argument(
+        "--cookies-out", default="cookies.txt", metavar="PATH", help="Where --export-cookies writes"
+    )
     return p.parse_args(argv)
 
 
@@ -86,6 +102,19 @@ def main(argv: list[str] | None = None) -> int:
         from ui_app import main as ui_main
 
         ui_main()
+        return 0
+
+    if args.export_cookies:
+        try:
+            path = export_cookies(args.export_cookies, Path(args.cookies_out))
+        except Exception as e:
+            print(f"Could not export cookies: {e}")
+            return 1
+        print(f"Wrote {path} (mode 600).\n")
+        print("Set it on your host as FETCH_COOKIES_TXT, contents and all:")
+        print(f"  pbcopy < {path}    # then paste into the env var\n")
+        print("These are a live session for whichever account that profile is")
+        print("logged into. Use a throwaway account, and re-export when it expires.")
         return 0
 
     if args.repair is not None:

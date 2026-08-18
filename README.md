@@ -101,6 +101,13 @@ cookies: export `cookies.txt` from a logged-in browser and either point
 (the practical option on a read-only host — Fetch writes it to a 0600 temp
 file at first use).
 
+Export one with Fetch itself, from the browser profile holding that account:
+
+```bash
+python3 youtube_downloader.py --export-cookies "chrome:Profile 2"
+pbcopy < cookies.txt        # paste into FETCH_COOKIES_TXT on the host
+```
+
 Use a throwaway YouTube account for this. Those cookies are a live session
 for whatever account exported them, they sit in your host's environment, and
 YouTube may flag an account whose session downloads from a datacenter IP.

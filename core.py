@@ -169,6 +169,33 @@ def resolve_cookies_file() -> Optional[str]:
     return None
 
 
+def export_cookies(browser: str, out_path: Path) -> Path:
+    """Write a cookies.txt from a local browser, for a hosted instance to use.
+
+    ``browser`` takes yt-dlp's syntax, so a dedicated profile can be named:
+    ``chrome:Profile 2``. Export from the profile holding the throwaway
+    account — these cookies are a live session for whoever is logged in.
+    """
+    out_path = Path(out_path).expanduser()
+    cmd = _ytdlp_base_cmd() + [
+        "--cookies-from-browser", browser,
+        "--cookies", str(out_path),
+        "--skip-download",
+        "--no-warnings",
+        "--simulate",
+        "https://www.youtube.com/watch?v=jNQXAC9IVRw",
+    ]
+    proc = subprocess.run(cmd, capture_output=True, text=True)
+    if not out_path.is_file():
+        detail = next(
+            (l for l in reversed(proc.stderr.splitlines()) if "ERROR" in l),
+            proc.stderr.strip().splitlines()[-1] if proc.stderr.strip() else "unknown error",
+        )
+        raise RuntimeError(detail)
+    out_path.chmod(0o600)
+    return out_path
+
+
 def is_hosted() -> bool:
     """Set by ui_app when the app is not running locally on macOS."""
     return os.environ.get("FETCH_HOSTED") == "1"
