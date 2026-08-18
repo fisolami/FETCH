@@ -739,11 +739,15 @@ def download_one(
             low = err.lower()
             if "page needs to be reloaded" in low or "sign in" in low or "not a bot" in low:
                 if is_hosted():
+                    tried = _attempt + 1
                     hint = (
-                        " YouTube bot-checks this server's IP, and there is no browser "
-                        "here to borrow cookies from. Set FETCH_COOKIES_TXT (or "
-                        "FETCH_COOKIES_FILE) to an exported cookies.txt and redeploy, "
-                        "or run Fetch on your own machine, where this video works."
+                        f" Refused on all {tried} player client"
+                        f"{'s' if tried != 1 else ''} tried "
+                        f"({', '.join(_client_chain()[:tried])}). YouTube bot-checks "
+                        "this server's IP and there is no browser here to borrow "
+                        "cookies from — this is not about the video or the format, "
+                        "audio and video fail the same way. Set FETCH_COOKIES_TXT to "
+                        "an exported cookies.txt and redeploy, or run Fetch locally."
                     )
                 elif resolve_cookies_file():
                     hint = (
