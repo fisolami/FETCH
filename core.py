@@ -51,12 +51,71 @@ def _client_chain() -> tuple[str, ...]:
     return _CLIENT_CHAIN
 
 
+# Where each browser keeps cookies on macOS, used to check readability before
+# offering it. Safari's lives in a TCC-protected container, so it is unreadable
+# unless the process has Full Disk Access.
+_BROWSER_COOKIE_PATHS = {
+    "chrome": "~/Library/Application Support/Google/Chrome",
+    "brave": "~/Library/Application Support/BraveSoftware/Brave-Browser",
+    "firefox": "~/Library/Application Support/Firefox",
+    "edge": "~/Library/Application Support/Microsoft Edge",
+    "safari": "~/Library/Containers/com.apple.Safari/Data/Library/Cookies/Cookies.binarycookies",
+}
+
+
+def browser_cookie_status() -> dict:
+    """Which browsers this process can actually read cookies from."""
+    status = {}
+    for name, raw in _BROWSER_COOKIE_PATHS.items():
+        path = Path(raw).expanduser()
+        try:
+            if path.is_file():
+                with path.open("rb") as fh:
+                    fh.read(1)
+                status[name] = True
+            elif path.is_dir():
+                next(os.scandir(path), None)
+                status[name] = True
+            else:
+                status[name] = False
+        except OSError:
+            status[name] = False
+    return status
+
+
+def _is_cookie_source_error(message: str) -> bool:
+    """The browser's cookies could not be read — nothing to do with the video."""
+    low = message.lower()
+    return (
+        ("operation not permitted" in low and "cookies" in low)
+        or ("could not find" in low and "cookies database" in low)
+        or "unable to decrypt" in low
+        or ("cookies" in low and "keyring" in low)
+    )
+
+
 def _is_bot_check(message: str) -> bool:
     low = message.lower()
     return (
         "not a bot" in low
         or "sign in to confirm" in low
         or "page needs to be reloaded" in low
+    )
+
+
+def _should_try_next_client(message: str) -> bool:
+    """Failures that are about the client we asked as, not about the video.
+
+    A 403 on the media URL means the stream handed back by that client was
+    refused or had expired — another client generally returns a working one,
+    exactly as with an outright bot check.
+    """
+    low = message.lower()
+    return (
+        _is_bot_check(message)
+        or "403: forbidden" in low
+        or "unable to download video data" in low
+        or "requested format is not available" in low
     )
 
 
@@ -781,10 +840,33 @@ def download_one(
                 "\n".join(stderr_lines[-8:]) or f"yt-dlp exited with code {code}",
             )
 
+            # An unreadable cookie store says nothing about the video. Retry
+            # without cookies rather than failing before YouTube is contacted.
+            if _is_cookie_source_error(err) and cookies_from_browser:
+                if on_progress:
+                    on_progress({"status": "retrying", "attempt": _attempt + 1})
+                retry = download_one(
+                    url,
+                    output_dir=output_dir,
+                    resolution=resolution,
+                    audio_only=audio_only,
+                    playlist=playlist,
+                    cookies_from_browser=None,
+                    on_progress=on_progress,
+                    quiet=quiet,
+                    _attempt=_attempt,
+                )
+                if retry.get("ok"):
+                    retry["note"] = (
+                        f"{cookies_from_browser} cookies could not be read, so this "
+                        "downloaded without them"
+                    )
+                return retry
+
             # A refusal is about which client asked, not about the video. Try
             # the next client set before giving up; local succeeds on the first
             # attempt and never reaches this.
-            if _is_bot_check(err) and _attempt + 1 < len(_client_chain()):
+            if _should_try_next_client(err) and _attempt + 1 < len(_client_chain()):
                 if on_progress:
                     on_progress({"status": "retrying", "attempt": _attempt + 2})
                 return download_one(

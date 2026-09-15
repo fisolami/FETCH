@@ -62,6 +62,34 @@
     });
   });
 
+  function applyBrowserAvailability(browsers) {
+    const known = Object.values(browsers);
+    // If nothing probes as readable the check is inconclusive (sandboxing, an
+    // unusual install path) — leave every option enabled rather than removing
+    // the feature entirely.
+    if (!known.length || !known.some(Boolean)) return;
+
+    let fallback = null;
+    browserButtons.forEach((btn) => {
+      const ok = browsers[btn.dataset.browser] !== false;
+      btn.disabled = !ok;
+      btn.title = ok
+        ? ""
+        : `Fetch cannot read ${btn.textContent} cookies on this Mac` +
+          (btn.dataset.browser === "safari"
+            ? " — macOS protects Safari's cookie store unless your terminal has Full Disk Access"
+            : "");
+      if (ok && !fallback) fallback = btn;
+      if (!ok) btn.classList.remove("active");
+    });
+
+    // Never leave an unreadable browser selected.
+    if (browsers[cookieBrowser] === false && fallback) {
+      selectIn(browserButtons, fallback);
+      cookieBrowser = fallback.dataset.browser;
+    }
+  }
+
   function syncCookieUI() {
     cookieBrowserBlock.classList.toggle("dimmed", !cookiesToggle.checked);
   }
@@ -287,6 +315,7 @@
 
       if (hint) hint.hidden = !!data.ffmpeg;
       isLocal = data.local !== false;
+      applyBrowserAvailability(data.browsers || {});
       if (!isLocal) {
         // A server has no browser to read cookies from and can only hand back
         // one file, so remove both controls rather than let them fail.

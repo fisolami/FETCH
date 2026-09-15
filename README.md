@@ -65,7 +65,14 @@ Saves to `~/Downloads`. Quality defaults to 1080p H.264, which is always
 Premiere-native; **Best** goes higher as VP9/AV1, which Premiere cannot import.
 
 Turn on **Use browser cookies** when YouTube throws bot checks or
-"page needs to be reloaded".
+"page needs to be reloaded". Fetch greys out any browser whose cookie store
+it cannot read, and if a read fails anyway the download continues without
+cookies rather than stopping. Safari is normally unreadable: macOS protects
+its cookie store unless the terminal running Fetch has Full Disk Access.
+
+Launch the app from your own terminal. Started from a sandboxed process it
+inherits that sandbox, cannot read any browser's cookies, and quietly falls
+back to lower-quality sources.
 
 ### TikTok
 

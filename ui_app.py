@@ -16,7 +16,7 @@ from pathlib import Path
 
 from flask import Flask, Response, abort, jsonify, request, send_file, send_from_directory
 
-from core import download_one, has_ffmpeg, system_status
+from core import browser_cookie_status, download_one, has_ffmpeg, system_status
 
 ROOT = Path(__file__).resolve().parent
 UI_DIR = ROOT / "ui"
@@ -76,6 +76,7 @@ def api_status():
     st = system_status()
     st["downloads"] = str(DOWNLOADS)
     st["local"] = IS_LOCAL
+    st["browsers"] = browser_cookie_status() if IS_LOCAL else {}
     return jsonify(st)
 
 

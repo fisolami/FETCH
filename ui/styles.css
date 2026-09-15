@@ -297,6 +297,17 @@ input:focus-visible,
   color: var(--color-gold);
 }
 
+.pill:disabled {
+  border-color: var(--hairline-dim);
+  color: var(--text-faint);
+  cursor: not-allowed;
+}
+
+.pill:disabled:hover {
+  border-color: var(--hairline-dim);
+  color: var(--text-faint);
+}
+
 /* ── Checkbox — state carried by glyph color, not fill ──────────────────── */
 
 .check {
