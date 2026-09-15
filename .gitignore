@@ -16,3 +16,4 @@ venv/
 # Vendored third-party binaries (ffmpeg ~47MB, yt-dlp ~36MB).
 # Not redistributed here; see README for how to restore them.
 bin/
+dist/

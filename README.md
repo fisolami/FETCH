@@ -136,6 +136,24 @@ run one as a sidecar and point Fetch at it with `FETCH_YTDLP_ARGS`.
 Ephemeral disks are small: a large download can exhaust the temp volume, and
 Fetch reports that plainly rather than failing obscurely.
 
+## macOS app
+
+```bash
+./build_macos_app.sh          # produces dist/Fetch by Fisola.app
+```
+
+Drag it to `/Applications` and launch it like any app. It starts the server,
+opens the UI in its own Chrome window (no address bar), and stays in the Dock
+while running — quitting it stops the server. Launching it again when the
+server is already up just reopens the window rather than starting a second one.
+
+The bundle is a launcher, not a frozen copy: it runs this checkout, so editing
+the code updates the app. Rebuild if you move the project folder. First launch
+may ask for permission to access the folder the project lives in.
+
+It writes `~/Library/Logs/FetchByFisola.log`, which records each launch step —
+read it first if the app ever fails to come up.
+
 ## Layout
 
 | File | Role |
@@ -145,3 +163,5 @@ Fetch reports that plainly rather than failing obscurely.
 | `youtube_downloader.py` | CLI |
 | `ui/` | Front end (no build step, no dependencies) |
 | `UI-DESIGN.md` | Visual style reference |
+| `build_macos_app.sh` | Builds the macOS app bundle |
+| `build/icon.html` | Source art for the app icon |

@@ -255,7 +255,8 @@ def main() -> None:
     port = int(os.environ.get("PORT", 8765))
     host = os.environ.get("HOST", "0.0.0.0" if hosted else "127.0.0.1")
     print(f"Fetch by Fisola → http://{host}:{port}")
-    if not hosted:
+    # The .app launcher opens its own window, so let it suppress ours.
+    if not hosted and os.environ.get("FETCH_NO_BROWSER") != "1":
         threading.Timer(0.6, lambda: webbrowser.open(f"http://127.0.0.1:{port}")).start()
     app.run(host=host, port=port, debug=False, threaded=True)
 
