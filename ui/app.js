@@ -133,6 +133,20 @@
     }
   });
 
+  const quitBtn = $("#quit");
+  quitBtn.addEventListener("click", async () => {
+    quitBtn.disabled = true;
+    try {
+      await fetch("/api/quit", { method: "POST" });
+    } catch {
+      /* the server exits mid-request; that is the expected outcome */
+    }
+    document.body.innerHTML =
+      '<div style="min-height:100dvh;display:grid;place-items:center;' +
+      'font:10px/1.4 system-ui;letter-spacing:.18px;text-transform:uppercase;' +
+      'color:rgb(255 247 221 / .62)">Fetch stopped — you can close this window</div>';
+  });
+
   function setBusy(on) {
     busy = on;
     downloadBtn.disabled = on;
@@ -315,6 +329,7 @@
 
       if (hint) hint.hidden = !!data.ffmpeg;
       isLocal = data.local !== false;
+      quitBtn.hidden = !isLocal;
       applyBrowserAvailability(data.browsers || {});
       if (!isLocal) {
         // A server has no browser to read cookies from and can only hand back

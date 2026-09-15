@@ -143,9 +143,13 @@ Fetch reports that plainly rather than failing obscurely.
 ```
 
 Drag it to `/Applications` and launch it like any app. It starts the server,
-opens the UI in its own Chrome window (no address bar), and stays in the Dock
-while running — quitting it stops the server. Launching it again when the
-server is already up just reopens the window rather than starting a second one.
+opens the UI in your browser, and exits — the server keeps running in the
+background. Launching it again just reopens the window instead of starting a
+second server. Stop it with **Quit** in the bottom-right of the UI.
+
+The launcher deliberately does not stay running: a bundle whose executable is
+a long-lived script has no event loop, so macOS answers the next launch with
+"the application is not responding" and refuses to open it.
 
 The bundle is a launcher, not a frozen copy: it runs this checkout, so editing
 the code updates the app. Rebuild if you move the project folder. First launch

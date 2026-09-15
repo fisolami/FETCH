@@ -75,9 +75,12 @@ if lsof -nP -iTCP:8765 -sTCP:LISTEN >/dev/null 2>&1; then
 fi
 
 cd "$PROJECT" || fail "Project folder not found: $PROJECT"
-FETCH_NO_BROWSER=1 "$PY" ui_app.py >>"$LOG" 2>&1 &
+# Start the server detached and let this script exit. A bundle whose
+# executable keeps running has no Cocoa event loop, so macOS reports "the
+# application is not responding" on the next launch and refuses to open it.
+nohup env FETCH_NO_BROWSER=1 "$PY" ui_app.py >>"$LOG" 2>&1 &
 SERVER=$!
-trap 'kill $SERVER 2>/dev/null' EXIT INT TERM
+disown 2>/dev/null || true
 
 READY=0
 for _ in $(seq 1 80); do
@@ -85,7 +88,7 @@ for _ in $(seq 1 80); do
   if ! kill -0 $SERVER 2>/dev/null; then
     if lsof -nP -iTCP:8765 -sTCP:LISTEN >/dev/null 2>&1; then
       say "another copy won the port — opening window only"
-      trap - EXIT; open_window; exit 0
+      open_window; exit 0
     fi
     fail "The server stopped during launch. See $LOG"
   fi
@@ -100,9 +103,8 @@ else
   say "probe never answered but server pid $SERVER is alive — opening anyway"
 fi
 open_window
-say "window opened; app will run until you quit it"
-wait $SERVER
-say "server exited"
+say "window opened; server pid $SERVER left running"
+exit 0
 LAUNCHER
 chmod +x "$APP/Contents/MacOS/fetch-launcher"
 

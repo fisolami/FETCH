@@ -123,6 +123,21 @@ def api_file():
     return send_file(target, as_attachment=True, download_name=target.name)
 
 
+@app.post("/api/quit")
+def api_quit():
+    """Stop the local server. The macOS app leaves it running after launch,
+    so the UI is where you turn it off."""
+    if not IS_LOCAL:
+        return jsonify({"ok": False, "error": "Only the local app can be quit this way."}), 400
+
+    def bye() -> None:
+        time.sleep(0.3)
+        os._exit(0)
+
+    threading.Thread(target=bye, daemon=True).start()
+    return jsonify({"ok": True})
+
+
 @app.post("/api/reveal")
 def api_reveal():
     """Open the downloads folder (or a specific file) in Finder on macOS."""
