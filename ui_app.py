@@ -71,6 +71,20 @@ def assets(filename: str):
     return send_from_directory(UI_DIR, filename)
 
 
+@app.after_request
+def _no_store(resp):
+    """Never let a browser cache the UI.
+
+    The HTML, CSS and JS change together; a browser holding one of them from
+    an earlier run against a newer sibling produces a page that renders but
+    does not work.
+    """
+    if request.path == "/" or request.path.startswith("/assets/"):
+        resp.headers["Cache-Control"] = "no-store, must-revalidate"
+        resp.headers["Pragma"] = "no-cache"
+    return resp
+
+
 @app.get("/api/status")
 def api_status():
     st = system_status()
