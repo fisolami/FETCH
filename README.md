@@ -108,6 +108,13 @@ python3 youtube_downloader.py --export-cookies "chrome:Profile 2"
 pbcopy < cookies.txt        # paste into FETCH_COOKIES_TXT on the host
 ```
 
+Use Chrome, Brave, Firefox or Edge. **Safari cannot work without Full Disk
+Access** — macOS protects its cookie store, and the export fails with
+`[Errno 1] Operation not permitted`. Grant your terminal Full Disk Access in
+System Settings → Privacy & Security if you must use it, or just use Chrome.
+Profile names come from the browser's folder, not its display name: read
+`Profile Path` in `chrome://version` and pass its last segment.
+
 Use a throwaway YouTube account for this. Those cookies are a live session
 for whatever account exported them, they sit in your host's environment, and
 YouTube may flag an account whose session downloads from a datacenter IP.

@@ -191,9 +191,45 @@ def export_cookies(browser: str, out_path: Path) -> Path:
             (l for l in reversed(proc.stderr.splitlines()) if "ERROR" in l),
             proc.stderr.strip().splitlines()[-1] if proc.stderr.strip() else "unknown error",
         )
-        raise RuntimeError(detail)
+        raise RuntimeError(detail + _cookie_export_hint(browser, detail))
     out_path.chmod(0o600)
     return out_path
+
+
+def _cookie_export_hint(browser: str, detail: str) -> str:
+    """Turn the platform's refusal into the next thing to actually do."""
+    low = detail.lower()
+    name = browser.split(":", 1)[0].lower()
+
+    if "operation not permitted" in low or "errno 1" in low:
+        if name == "safari":
+            return (
+                "\n\nmacOS protects Safari's cookie store. Either grant Full Disk "
+                "Access to your terminal (System Settings → Privacy & Security → "
+                "Full Disk Access, add Terminal/iTerm/VS Code, restart it), or export "
+                "from Chrome instead — it needs no special permission:\n"
+                "  --export-cookies chrome"
+            )
+        return (
+            f"\n\nmacOS blocked access to {browser}'s data. Grant Full Disk Access to "
+            "your terminal in System Settings → Privacy & Security, then restart it."
+        )
+
+    if "could not find" in low and "cookies database" in low:
+        return (
+            f"\n\nNo cookie store for that {name} profile. Profile names come from "
+            "the browser's own folder, not its display name — open chrome://version "
+            "and read 'Profile Path'; its last segment is what to pass, e.g.\n"
+            "  --export-cookies \"chrome:Profile 2\""
+        )
+
+    if "unable to decrypt" in low or "keyring" in low or "keychain" in low:
+        return (
+            "\n\nThe browser's cookies are Keychain-encrypted. Re-run and click Allow "
+            "on the Keychain prompt — it needs a real login session, so run it from a "
+            "terminal window you are sitting in front of, not over SSH."
+        )
+    return ""
 
 
 def is_hosted() -> bool:
