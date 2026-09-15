@@ -52,22 +52,24 @@ done
 [ -n "$PY" ] || fail "No Python with Flask found. In $PROJECT run: .venv/bin/pip install -r requirements.txt"
 
 open_window() {
-  # Invoke Chrome's binary directly: "open -na ... --args" is ignored when
-  # Chrome is already running, so app-mode would silently become a plain tab.
-  CHROME_BIN="$CHROME_APP/Contents/MacOS/Google Chrome"
-  if [ -x "$CHROME_BIN" ]; then
-    nohup "$CHROME_BIN" --app="$URL" --window-size=1180,900 >/dev/null 2>&1 &
-    disown 2>/dev/null || true
+  # Plain "open" is the only invocation that reliably loads the page from a
+  # bundle launched by Finder. Chrome's --app mode looks nicer but silently
+  # opened a window that never loaded anything, which is worse than a tab.
+  if [ -d "$CHROME_APP" ]; then
+    open -a "$CHROME_APP" "$URL" || open "$URL"
   else
     open "$URL"
   fi
+  say "opened $URL in the browser"
 }
 
 say "launching, python=$PY"
 
-# Already running (started by hand or by an earlier launch)? Just show it.
-if curl -sf -o /dev/null --max-time 2 "$URL/api/status"; then
-  say "server already up — opening window only"
+# Already running, or another copy launching at the same moment? Check the
+# port itself: an HTTP probe can fail while the port is very much taken, and
+# starting a second server then loses the bind race and kills both launches.
+if lsof -nP -iTCP:8765 -sTCP:LISTEN >/dev/null 2>&1; then
+  say "port 8765 already serving — opening window only"
   open_window
   exit 0
 fi
@@ -79,8 +81,14 @@ trap 'kill $SERVER 2>/dev/null' EXIT INT TERM
 
 READY=0
 for _ in $(seq 1 80); do
-  if curl -sf -o /dev/null --max-time 1 "$URL/api/status"; then READY=1; break; fi
-  kill -0 $SERVER 2>/dev/null || fail "The server stopped during launch. See $LOG"
+  if curl -sf -o /dev/null --max-time 3 "$URL/api/ping"; then READY=1; break; fi
+  if ! kill -0 $SERVER 2>/dev/null; then
+    if lsof -nP -iTCP:8765 -sTCP:LISTEN >/dev/null 2>&1; then
+      say "another copy won the port — opening window only"
+      trap - EXIT; open_window; exit 0
+    fi
+    fail "The server stopped during launch. See $LOG"
+  fi
   sleep 0.25
 done
 if [ "$READY" = "1" ]; then
@@ -117,6 +125,11 @@ if [ -x "$CHROME" ]; then
 else
   echo "note: Chrome not found, building without a custom icon"
 fi
+
+# Ad-hoc signature: unsigned bundles are rejected by Gatekeeper and get a new
+# identity on every change, so macOS cannot remember permissions granted to it.
+codesign --force --deep --sign - "$APP" 2>/dev/null \
+  && echo "signed (ad-hoc)" || echo "note: could not sign; Gatekeeper may block it"
 
 touch "$APP"   # nudge Finder to re-read the bundle
 echo "Built: $APP"

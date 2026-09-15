@@ -174,7 +174,10 @@ def detect_js_runtime() -> Optional[str]:
     return None
 
 
+@lru_cache(maxsize=1)
 def ytdlp_version() -> str:
+    """Cached: the bundled binary takes seconds to answer --version, and this
+    is called by every /api/status request."""
     cmd = _ytdlp_base_cmd() + ["--version"]
     try:
         out = subprocess.check_output(

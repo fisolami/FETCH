@@ -57,6 +57,10 @@ if not IS_LOCAL:
 
 app = Flask(__name__, static_folder=None)
 
+# Warm the yt-dlp version lookup off the request path: the first call shells
+# out to the bundled binary and takes seconds.
+threading.Thread(target=system_status, daemon=True).start()
+
 _job_lock = threading.Lock()
 _busy = False
 
@@ -83,6 +87,12 @@ def _no_store(resp):
         resp.headers["Cache-Control"] = "no-store, must-revalidate"
         resp.headers["Pragma"] = "no-cache"
     return resp
+
+
+@app.get("/api/ping")
+def api_ping():
+    """Cheap liveness check — nothing here may touch a subprocess."""
+    return jsonify({"ok": True})
 
 
 @app.get("/api/status")
